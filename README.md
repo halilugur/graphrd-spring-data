@@ -2,7 +2,7 @@
 
 # GraphRD Spring Data module
 
-Spring Data repositories over GraphRD for [GraphRD](https://github.com/halilugur/graphrd) —
+Spring Data repositories over GraphRD for [GraphRD](https://graphrd.org) —
 the pure-Java client library underneath, Spring's own interface structure on top.
 
 ```xml

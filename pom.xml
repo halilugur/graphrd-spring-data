@@ -12,7 +12,7 @@
   <name>GraphRD Spring Data module</name>
   <description>Spring Data repositories over GraphRD: GraphRdRepository with CRUD,
     derived names, @Query SPARQL and specifications, plus the Spring Boot starter.</description>
-  <url>https://github.com/halilugur/graphrd-spring-data</url>
+  <url>https://graphrd.org</url>
 
   <licenses>
     <license>
