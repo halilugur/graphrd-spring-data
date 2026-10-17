@@ -42,4 +42,4 @@ jobs:
           mvn -B install -DskipTests --file ../graphrd-client/pom.xml
 
       - name: Build and test
-        run: mvn -B verify
+        run: mvn -B verify -Dgraphrd.bin=$GITHUB_WORKSPACE/../graphrd/target/release/graphrd
