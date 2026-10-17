@@ -1,0 +1,2 @@
+org.graphrd.spring.GraphRdAutoConfiguration
+org.graphrd.springdata.GraphRdAutoConfiguration
