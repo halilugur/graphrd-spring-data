@@ -40,7 +40,11 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/halilugur/graphrd.git ../graphrd
           cargo build --release --manifest-path ../graphrd/Cargo.toml
-          git clone --depth 1 https://github.com/halilugur/graphrd-client.git ../graphrd-client
+          if [ -n "$GRAPHRD_TOKEN" ]; then
+            git clone --depth 1 https://x-access-token:$GRAPHRD_TOKEN@github.com/halilugur/graphrd-client.git ../graphrd-client
+          else
+            git clone --depth 1 https://github.com/halilugur/graphrd-client.git ../graphrd-client
+          fi
           mvn -B install -DskipTests --file ../graphrd-client/pom.xml
 
       - name: Build and test
