@@ -33,18 +33,12 @@ jobs:
 
       # The integration tests boot a throwaway server from the GraphRD release
       # binary; on CI it is cloned and built next to this repository, where the
-      # tests' ../../target/release/graphrd lookup finds it. The pure-Java
-      # client is installed from the local checkout's sibling clone — or, when
-      # GH_GRAPHRD_CLIENT_REF names a release, from Maven Local via git.
+      # tests' ../../target/release/graphrd lookup finds it.
       - name: Build GraphRD server and client
         run: |
           git clone --depth 1 https://github.com/halilugur/graphrd.git ../graphrd
           cargo build --release --manifest-path ../graphrd/Cargo.toml
-          if [ -n "$GRAPHRD_TOKEN" ]; then
-            git clone --depth 1 https://x-access-token:$GRAPHRD_TOKEN@github.com/halilugur/graphrd-client.git ../graphrd-client
-          else
-            git clone --depth 1 https://github.com/halilugur/graphrd-client.git ../graphrd-client
-          fi
+          git clone --depth 1 https://github.com/halilugur/graphrd-client.git ../graphrd-client
           mvn -B install -DskipTests --file ../graphrd-client/pom.xml
 
       - name: Build and test
