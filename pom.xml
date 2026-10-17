@@ -34,10 +34,6 @@
     <url>https://github.com/halilugur/graphrd-spring-data</url>
   </scm>
 
-  <name>GraphRD Spring Data module</name>
-  <description>Spring Data repositories over GraphRD: Pageable, Sort, derived queries —
-    the client library does the work underneath.</description>
-
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
