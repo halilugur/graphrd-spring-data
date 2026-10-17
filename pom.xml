@@ -10,6 +10,31 @@
   <packaging>jar</packaging>
 
   <name>GraphRD Spring Data module</name>
+  <description>Spring Data repositories over GraphRD: GraphRdRepository with CRUD,
+    derived names, @Query SPARQL and specifications, plus the Spring Boot starter.</description>
+  <url>https://github.com/halilugur/graphrd-spring-data</url>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>halilugur</id>
+      <name>Halil Ugur</name>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/halilugur/graphrd-spring-data.git</connection>
+    <developerConnection>scm:git:git@github.com:halilugur/graphrd-spring-data.git</developerConnection>
+    <url>https://github.com/halilugur/graphrd-spring-data</url>
+  </scm>
+
+  <name>GraphRD Spring Data module</name>
   <description>Spring Data repositories over GraphRD: Pageable, Sort, derived queries —
     the client library does the work underneath.</description>
 
