@@ -2,12 +2,10 @@ package org.graphrd.springdata;
 
 import java.lang.annotation.Annotation;
 
-import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.data.repository.config.RepositoryBeanDefinitionRegistrarSupport;
 import org.springframework.data.repository.config.RepositoryConfigurationExtension;
 import org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport;
-import org.springframework.data.repository.config.RepositoryConfigurationSource;
 
 /** Wires @EnableGraphRdRepositories into Spring Data's scanning machinery. */
 class GraphRdRegistrar extends RepositoryBeanDefinitionRegistrarSupport {
@@ -26,7 +24,7 @@ class GraphRdRegistrar extends RepositoryBeanDefinitionRegistrarSupport {
         return new GraphRdRepositoryConfigurationExtension();
     }
 
-    /** Every repository bean gets the manager bean named rdfEntityManager. */
+    /** The repository beans find the manager themselves (see the factory bean). */
     static class GraphRdRepositoryConfigurationExtension extends RepositoryConfigurationExtensionSupport {
 
         @Override
@@ -42,11 +40,6 @@ class GraphRdRegistrar extends RepositoryBeanDefinitionRegistrarSupport {
         @Override
         public String getRepositoryFactoryBeanClassName() {
             return GraphRdRepositoryFactoryBean.class.getName();
-        }
-
-        @Override
-        public void postProcess(BeanDefinitionBuilder builder, RepositoryConfigurationSource config) {
-            builder.addPropertyReference("rdfEntityManager", "rdfEntityManager");
         }
     }
 }

@@ -78,7 +78,7 @@ class GraphRdStringQuery implements RepositoryQuery {
     }
 
     private static long firstNumber(Map<String, String> row) {
-        return Math.round(Double.parseDouble(row.values().iterator().next()));
+        return (Long) convert(row.values().iterator().next(), long.class);
     }
 
     /** :name placeholders become literals of the same-named parameters. */
@@ -140,18 +140,25 @@ class GraphRdStringQuery implements RepositoryQuery {
         if (t == String.class) {
             return v;
         }
-        double d = Double.parseDouble(v);
+        if (t == boolean.class || t == Boolean.class) {
+            return Boolean.parseBoolean(v) || "1".equals(v);
+        }
         if (t == long.class || t == Long.class) {
-            return Math.round(d);
+            try {
+                return Long.parseLong(v); // exact beyond 2^53
+            } catch (NumberFormatException e) {
+                return Math.round(Double.parseDouble(v)); // a decimal answer, e.g. a SUM
+            }
         }
         if (t == int.class || t == Integer.class) {
-            return (int) Math.round(d);
+            try {
+                return Integer.parseInt(v);
+            } catch (NumberFormatException e) {
+                return (int) Math.round(Double.parseDouble(v));
+            }
         }
         if (t == double.class || t == Double.class) {
-            return Math.round(d * 100) / 100.0;
-        }
-        if (t == boolean.class || t == Boolean.class) {
-            return Boolean.parseBoolean(v);
+            return Double.parseDouble(v); // as answered: no rounding
         }
         throw new UnsupportedOperationException("@Query record component type " + t);
     }

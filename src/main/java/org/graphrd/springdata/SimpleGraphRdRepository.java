@@ -103,10 +103,7 @@ class SimpleGraphRdRepository<T> implements GraphRdRepository<T, String> {
 
     @Override
     public Page<T> findAll(Pageable pageable) {
-        EntityQuery<T> q = em.query(domainType);
-        applySort(q, pageable.getSort());
-        EntityQuery.Paged<T> paged = q.page(pageable.getPageNumber(), pageable.getPageSize());
-        return new PageImpl<>(paged.items(), pageable, paged.total());
+        return page(em.query(domainType), pageable);
     }
 
     @Override
@@ -123,9 +120,17 @@ class SimpleGraphRdRepository<T> implements GraphRdRepository<T, String> {
 
     @Override
     public Page<T> findAll(GraphRdSpecification<T> specification, Pageable pageable) {
-        EntityQuery<T> q = specification.apply(em.query(domainType));
+        return page(specification.apply(em.query(domainType)), pageable);
+    }
+
+    /** One page with the total — or everything when the request is unpaged. */
+    private static <T> Page<T> page(EntityQuery<T> q, Pageable pageable) {
         applySort(q, pageable.getSort());
-        var paged = q.page(pageable.getPageNumber(), pageable.getPageSize());
+        if (pageable.isUnpaged()) {
+            List<T> all = q.list();
+            return new PageImpl<>(all, pageable, all.size());
+        }
+        EntityQuery.Paged<T> paged = q.page(pageable.getPageNumber(), pageable.getPageSize());
         return new PageImpl<>(paged.items(), pageable, paged.total());
     }
 

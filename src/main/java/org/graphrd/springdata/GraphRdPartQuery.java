@@ -1,12 +1,18 @@
 package org.graphrd.springdata;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.RepositoryMetadata;
@@ -65,14 +71,17 @@ class GraphRdPartQuery implements RepositoryQuery {
             arg = apply(q, part, conditions, arg);
         }
 
+        Class<?> returns = method.getReturnType();
         if (tree.isDelete()) {
             List<?> victims = q.list();
             victims.forEach(v -> em.delete(domainType, em.idOfPublic(v)));
-            Class<?> returns = method.getReturnType();
-            return returns == long.class || returns == Long.class ? (long) victims.size() : null;
+            if (Collection.class.isAssignableFrom(returns) || returns == Iterable.class) {
+                return victims; // the removed entities, as Spring Data's stores answer
+            }
+            return returns == void.class || returns == Void.class ? null : number(victims.size(), returns);
         }
         if (tree.isCountProjection()) {
-            return q.count();
+            return number(q.count(), returns);
         }
         if (tree.isExistsProjection()) {
             return q.limit(1).count() > 0;
@@ -81,31 +90,39 @@ class GraphRdPartQuery implements RepositoryQuery {
             q = q.limit(tree.getMaxResults());
         }
 
-        SimpleGraphRdRepository.applySort(q, tree.getSort());
+        // OrderBy in the name first, then a Sort parameter, then the Pageable's sort
+        Sort order = tree.getSort();
         if (sort != null) {
-            SimpleGraphRdRepository.applySort(q, sort);
+            order = order.and(sort);
         }
-        if (pageable != null && pageable.getSort().isSorted()) {
-            SimpleGraphRdRepository.applySort(q, pageable.getSort());
+        if (pageable != null) {
+            order = order.and(pageable.getSort());
         }
+        SimpleGraphRdRepository.applySort(q, order);
 
-        Class<?> returns = method.getReturnType();
-        if (Page.class.isAssignableFrom(returns)) {
-            EntityQuery.Paged<?> paged = q.page(pageable.getPageNumber(), pageable.getPageSize());
-            return new PageImpl<>(paged.items(), pageable, paged.total());
+        boolean paged = pageable != null && pageable.isPaged();
+        if (Slice.class.isAssignableFrom(returns)) { // Page and Slice
+            if (!paged) {
+                List<?> all = q.list();
+                return new PageImpl<>(all, pageable == null ? Pageable.unpaged() : pageable, all.size());
+            }
+            EntityQuery.Paged<?> page = q.page(pageable.getPageNumber(), pageable.getPageSize());
+            return new PageImpl<>(page.items(), pageable, page.total());
         }
         if (Optional.class == returns) {
             return q.limit(1).list().stream().findFirst();
         }
-        if (List.class.isAssignableFrom(returns) || Iterable.class.isAssignableFrom(returns)) {
-            if (pageable != null && pageable.isPaged()) {
-                return q.limit(pageable.getPageSize())
-                        .offset((long) pageable.getPageNumber() * pageable.getPageSize()).list();
+        if (Iterable.class.isAssignableFrom(returns) || Stream.class.isAssignableFrom(returns)) {
+            List<?> list = paged
+                    ? q.limit(pageable.getPageSize()).offset(pageable.getOffset()).list()
+                    : q.list();
+            if (Set.class.isAssignableFrom(returns)) {
+                return new LinkedHashSet<>(list);
             }
-            return q.list();
+            return Stream.class.isAssignableFrom(returns) ? list.stream() : list;
         }
-        if (long.class == returns || Long.class == returns) {
-            return q.count();
+        if (long.class == returns || Long.class == returns || int.class == returns || Integer.class == returns) {
+            return number(q.count(), returns);
         }
         if (boolean.class == returns || Boolean.class == returns) {
             return !q.limit(1).list().isEmpty();
@@ -113,6 +130,29 @@ class GraphRdPartQuery implements RepositoryQuery {
         // a single entity of the domain type
         List<?> one = q.limit(1).list();
         return one.isEmpty() ? null : one.get(0);
+    }
+
+    /** A count in the declared numeric return type (int or long). */
+    private static Object number(long n, Class<?> returns) {
+        return returns == int.class || returns == Integer.class ? (Object) (int) n : (Object) n;
+    }
+
+    /** An In argument: a collection, an array, or a single value. */
+    private static List<?> values(Object v) {
+        if (v instanceof Collection<?> c) {
+            return new ArrayList<>(c);
+        }
+        if (v instanceof Object[] a) {
+            return java.util.Arrays.asList(a);
+        }
+        if (v != null && v.getClass().isArray()) {
+            List<Object> out = new ArrayList<>();
+            for (int i = 0; i < java.lang.reflect.Array.getLength(v); i++) {
+                out.add(java.lang.reflect.Array.get(v, i));
+            }
+            return out;
+        }
+        return v == null ? List.of() : List.of(v);
     }
 
     /** One part of the tree, consuming its arguments. */
@@ -123,8 +163,10 @@ class GraphRdPartQuery implements RepositoryQuery {
         switch (part.getType()) {
             case SIMPLE_PROPERTY -> {
                 arg++;
-                if (v != null && v instanceof String iri && em.isReferenceField(domainType, field)) {
+                if (v instanceof String iri && em.isReferenceField(domainType, field)) {
                     q.whereRef(field, iri);
+                } else if (ignoreCase && v instanceof String text) {
+                    q.whereIgnoreCase(field, text);
                 } else {
                     q.where(field, EntityQuery.Op.EQ, v);
                 }
@@ -148,7 +190,7 @@ class GraphRdPartQuery implements RepositoryQuery {
             case FALSE -> q.where(field, EntityQuery.Op.EQ, false);
             case IN -> {
                 arg++;
-                q.whereIn(field, (List<?>) v);
+                q.whereIn(field, values(v));
             }
             case LIKE, STARTING_WITH, ENDING_WITH, CONTAINING -> {
                 arg++;

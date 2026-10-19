@@ -24,6 +24,9 @@ public class GraphRdAutoConfiguration {
     @Bean(destroyMethod = "close")
     @ConditionalOnMissingBean
     RdfClient rdfClient(GraphRdProperties settings) {
+        if (settings.baseUrl() == null || settings.baseUrl().isBlank()) {
+            throw new IllegalStateException("graphrd.base-url is not set (e.g. http://localhost:7200)");
+        }
         return RdfClient.builder()
                 .baseUrl(settings.baseUrl())
                 .connectTimeout(settings.connectTimeout())
@@ -34,6 +37,9 @@ public class GraphRdAutoConfiguration {
     @Bean(destroyMethod = "close")
     @ConditionalOnMissingBean
     RdfEntityManager rdfEntityManager(RdfClient client, GraphRdProperties settings) {
+        if (settings.repository() == null || settings.repository().isBlank()) {
+            throw new IllegalStateException("graphrd.repository is not set (the repository id to use)");
+        }
         client.createRepository(settings.repository());
         return new RdfEntityManager(client, settings.repository(), settings.namespace());
     }

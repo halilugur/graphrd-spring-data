@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 
 import org.graphrd.RdfClient;
@@ -113,6 +115,9 @@ class SpringDataRepositoriesIT {
     record Stats(long employees, long payroll, double average) {
     }
 
+    record Third(double value) {
+    }
+
     /** The one repository for Person: CRUD + derived + @Query — nothing else
      *  to write: dynamic searches are specifications the repository already runs. */
     interface People extends GraphRdRepository<Person, String> {
@@ -151,9 +156,50 @@ class SpringDataRepositoriesIT {
         @Query("PREFIX ex: <{ns}> SELECT ?n WHERE { ?e a ex:Person ; ex:name ?n ; ex:age ?a"
                 + " . FILTER(?a >= :lo && ?a <= :hi) } ORDER BY ?n")
         List<String> namesBetween(int lo, int hi);
+
+        List<Person> findByNameIgnoreCase(String name);
+
+        Set<Person> findByAgeLessThan(int age);
+
+        List<Person> findByNameIn(Set<String> names);
+
+        int countByAgeGreaterThan(int age);
+
+        int deleteBySalary(int salary);
+
+        Page<Person> findBySalaryGreaterThan(int salary, Pageable pageable);
+
+        Slice<Person> findByAgeLessThanEqual(int age, Pageable pageable);
+
+        @Query("PREFIX ex: <{ns}> SELECT ((SUM(?a)) / 3 AS ?value) WHERE { ?e a ex:Person ; ex:age ?a }")
+        Third ageSumThird();
+
+        @Query("PREFIX ex: <{ns}> SELECT ?b WHERE { BIND(true AS ?b) }")
+        boolean alwaysTrue();
     }
 
     interface Companies extends GraphRdRepository<Company, String> {
+    }
+
+    @Test
+    void derivedAndQueryEdgeCases() {
+        assertEquals(List.of("Alice"), people.findByNameIgnoreCase("aLiCe").stream().map(Person::getName).toList());
+        assertEquals(2, people.findByAgeLessThan(40).size());
+        assertEquals(2, people.findByNameIn(Set.of("Alice", "Dave")).size());
+        assertEquals(3, people.countByAgeGreaterThan(30));
+
+        Page<Person> unpaged = people.findBySalaryGreaterThan(60000, Pageable.unpaged());
+        assertEquals(3, unpaged.getTotalElements());
+        assertEquals(3, unpaged.getContent().size());
+        Slice<Person> slice = people.findByAgeLessThanEqual(41, PageRequest.of(0, 2, Sort.by("age")));
+        assertEquals(List.of("Bob", "Alice"), slice.getContent().stream().map(Person::getName).toList());
+        assertEquals(4, people.findAll(Pageable.unpaged()).getContent().size());
+
+        assertEquals(155 / 3.0, people.ageSumThird().value(), 1e-6);
+        assertTrue(people.alwaysTrue());
+
+        assertEquals(1, people.deleteBySalary(58000));
+        assertEquals(3, people.count());
     }
 
     @Configuration

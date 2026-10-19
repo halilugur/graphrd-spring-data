@@ -2,13 +2,13 @@ package org.graphrd.springdata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.AutoConfigurationPackages;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackages;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -37,6 +37,21 @@ class AutoConfigurationIT {
         RdfEntityManager rdfEntityManager(RdfClient client) {
             client.createRepository("auto");
             return new RdfEntityManager(client, "auto");
+        }
+    }
+
+    /** The application's own manager bean, under a name of its choosing. */
+    static class RenamedManagerConfig {
+
+        @Bean(destroyMethod = "close")
+        RdfClient rdfClient() throws Exception {
+            return new RdfClient(TestServer.start());
+        }
+
+        @Bean(destroyMethod = "close")
+        RdfEntityManager graphManager(RdfClient client) {
+            client.createRepository("renamed");
+            return new RdfEntityManager(client, "renamed");
         }
     }
 
@@ -77,6 +92,22 @@ class AutoConfigurationIT {
                     assertEquals(2, people.count());
                     assertEquals("Ann", people.findById("http://ex.org/ann").orElseThrow().name);
                     assertEquals(1, people.findByNameStartingWith("Ber").size());
+                });
+    }
+
+    @Test
+    void repositoriesFindAManagerBeanOfAnyName() {
+        new ApplicationContextRunner()
+                .withInitializer(ctx -> AutoConfigurationPackages.register(
+                        (BeanDefinitionRegistry) ctx.getBeanFactory(), "org.graphrd.springdata.autodemo"))
+                .withUserConfiguration(RenamedManagerConfig.class)
+                .withConfiguration(AutoConfigurations.of(GraphRdAutoConfiguration.class))
+                .run(ctx -> {
+                    assertNull(ctx.getStartupFailure());
+                    AutoPeople people = ctx.getBean(AutoPeople.class);
+                    people.deleteAll();
+                    people.save(new AutoPerson("http://ex.org/cem", "Cem", 40));
+                    assertEquals(1, people.count());
                 });
     }
 }
