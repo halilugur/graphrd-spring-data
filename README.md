@@ -13,13 +13,15 @@ structure described below. Java 17+.
 
 ## Install
 
-One dependency — the client comes with it:
+One dependency — the client comes with it. The module's version is the
+Spring Boot version it is built on: pick the one that matches your
+application (4.1.1 for Spring Boot 4.1.x).
 
 ```xml
 <dependency>
   <groupId>org.graphrd</groupId>
   <artifactId>graphrd-spring-data</artifactId>
-  <version>1.0.0</version>
+  <version>4.1.1</version>
 </dependency>
 ```
 
@@ -103,7 +105,7 @@ configuration annotations.
 
 ## Requirements and tests
 
-Java 17+, Spring Boot 3.x and a running GraphRD server. `mvn test` boots a
+Java 17+, Spring Boot 4.x (Spring Framework 7, Spring Data 2026.x) and a running GraphRD server. `mvn test` boots a
 throwaway server and runs the whole tour through a real Spring context: it
 expects the release binary at `../../target/release/graphrd` (clone
 [GraphRD](https://github.com/halilugur/graphrd) next to this repository and run

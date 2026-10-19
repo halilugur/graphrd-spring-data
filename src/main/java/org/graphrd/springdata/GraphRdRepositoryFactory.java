@@ -5,7 +5,7 @@ import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.RepositoryMetadata;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
 import org.springframework.data.repository.query.QueryLookupStrategy;
-import org.springframework.data.repository.query.QueryMethodEvaluationContextProvider;
+import org.springframework.data.repository.query.ValueExpressionDelegate;
 import org.springframework.data.repository.query.RepositoryQuery;
 
 import org.graphrd.rdf.RdfEntityManager;
@@ -37,7 +37,7 @@ class GraphRdRepositoryFactory extends RepositoryFactorySupport {
 
     @Override
     protected java.util.Optional<QueryLookupStrategy> getQueryLookupStrategy(
-            QueryLookupStrategy.Key key, QueryMethodEvaluationContextProvider evaluationContextProvider) {
+            QueryLookupStrategy.Key key, ValueExpressionDelegate valueExpressionDelegate) {
         return java.util.Optional.of((method, metadata, projections, namedQueries) -> {
             Query annotation = method.getAnnotation(Query.class);
             return annotation != null

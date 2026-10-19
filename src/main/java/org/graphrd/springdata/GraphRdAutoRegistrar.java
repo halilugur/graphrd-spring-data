@@ -4,6 +4,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.BeanNameGenerator;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackages;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.ResourceLoaderAware;
@@ -44,12 +45,13 @@ class GraphRdAutoRegistrar
     }
 
     @Override
-    public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
+    public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry,
+                                        BeanNameGenerator names) {
         // the annotation attributes come from a marked source class (Spring Boot's own trick);
         // the base packages are overridden to the application's own
         var source = new AnnotationRepositoryConfigurationSource(
                 AnnotationMetadata.introspect(AutoSource.class),
-                EnableGraphRdRepositories.class, resourceLoader, environment, registry) {
+                EnableGraphRdRepositories.class, resourceLoader, environment, registry, names) {
             @Override
             public Streamable<String> getBasePackages() {
                 return Streamable.of(() -> AutoConfigurationPackages.get(beanFactory).iterator());
